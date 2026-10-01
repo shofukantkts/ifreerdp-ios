@@ -49,9 +49,10 @@ jobs:
           FULL_CODECS: ${{ inputs.full_codecs || false }}
         run: |
           set -euo pipefail
-          codec_args=()
           if [[ "$FULL_CODECS" == "true" ]]; then
-            codec_args+=("-DWITH_FFMPEG=ON")
+            codec_args="-DWITH_FFMPEG=ON"
+          else
+            codec_args=""
           fi
 
           cmake -S client/iOS -B build/ios-simulator \
@@ -66,7 +67,7 @@ jobs:
             -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
             -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=NO \
             -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY="" \
-            "${codec_args[@]}" \
+            ${codec_args:+$codec_args} \
             -G Xcode
 
       - name: Build
