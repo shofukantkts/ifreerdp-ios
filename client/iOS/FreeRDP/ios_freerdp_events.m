@@ -17,6 +17,8 @@
 
 #include "ios_freerdp_events.h"
 
+#define TAG FREERDP_TAG("iOS.events")
+
 #pragma mark -
 #pragma mark Sending compacted input events (from main thread)
 
