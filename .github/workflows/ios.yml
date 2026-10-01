@@ -83,6 +83,8 @@ jobs:
           mkdir -p dist/Payload
           cp -R dist/install/iFreeRDP.app dist/Payload/
           (cd dist && zip -qry iFreeRDP-simulator.zip Payload)
+          locale_count="$(unzip -Z1 dist/iFreeRDP-simulator.zip | grep -c '/en\.lproj/Localizable\.strings$')"
+          test "$locale_count" -eq 1
 
       - name: Upload simulator artifact
         uses: actions/upload-artifact@v4
