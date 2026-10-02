@@ -17,6 +17,16 @@
 workflow_dispatch 可以开启 full_codecs，让 FreeRDP 的 iOS superbuild 额外编译
 FFmpeg H.264/HEVC 路径。默认 CI 关闭可选组件，以减少每次 PR 的构建时间。
 
+## 未签名真机 IPA
+
+如果自己拥有签名方式，不需要把 Apple 证书放进仓库。手动运行 workflow 时，把
+`unsigned_device` 设为 `true`；Actions 会构建 `OS64` arm64 真机版本，并上传
+`iFreeRDP-unsigned.ipa`。这个包没有 Apple 签名，不能直接点开安装，需要用
+AltStore、SideStore、Sideloadly 或自己的 `codesign`/provisioning profile 重新签名。
+
+`device` 选项则是由 GitHub Actions 使用仓库 Secrets 自动签名的完整流程；没有这些
+Secrets 时不要选择它。
+
 ## 真机签名
 
 真机需要把 workflow 的平台改成 OS64，并配置 Apple Developer 证书与 provisioning

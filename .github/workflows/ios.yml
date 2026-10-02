@@ -16,6 +16,11 @@ on:
         required: false
         default: false
         type: boolean
+      unsigned_device:
+        description: Build an unsigned iPhone/iPad IPA for local signing
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -104,6 +109,77 @@ jobs:
           submodules: recursive
       - name: Check iOS source invariants
         run: ./scripts/check-ios-source.sh
+
+  device-unsigned:
+    name: Unsigned iOS device build
+    if: github.event_name == 'workflow_dispatch' && inputs.unsigned_device == true
+    runs-on: macos-26
+    timeout-minutes: 100
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Prepare toolchain
+        run: |
+          brew list cmake >/dev/null 2>&1 || brew install cmake
+          brew list pkgconf >/dev/null 2>&1 || brew install pkgconf
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Configure unsigned device build
+        env:
+          FULL_CODECS: ${{ inputs.full_codecs || false }}
+        run: |
+          set -euo pipefail
+          if [[ "$FULL_CODECS" == "true" ]]; then
+            codec_args="-DWITH_FFMPEG=ON"
+          else
+            codec_args=""
+          fi
+
+          cmake -S client/iOS -B build/ios-device-unsigned \
+            -C ci/cmake-preloads/config-ios.cmake \
+            -DCMAKE_TOOLCHAIN_FILE="$GITHUB_WORKSPACE/cmake/ios.toolchain.cmake" \
+            -DPLATFORM=OS64 \
+            -DDEPLOYMENT_TARGET=15.0 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
+            -DIOS_BUNDLE_IDENTIFIER=com.example.ifreerdp \
+            -DIOS_DISPLAY_NAME=iFreeRDP \
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/dist/device-unsigned-install" \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=NO \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY="" \
+            ${codec_args:+$codec_args} \
+            -G Xcode
+
+      - name: Build unsigned app
+        run: |
+          set -euo pipefail
+          cmake --build build/ios-device-unsigned --config Release --parallel 3
+          cmake --install build/ios-device-unsigned --config Release
+          test -d dist/device-unsigned-install/iFreeRDP.app
+          test -x dist/device-unsigned-install/iFreeRDP.app/iFreeRDP
+          lipo -info dist/device-unsigned-install/iFreeRDP.app/iFreeRDP | grep -q arm64
+
+      - name: Package unsigned IPA
+        run: |
+          set -euo pipefail
+          mkdir -p dist/device-unsigned/Payload
+          cp -R dist/device-unsigned-install/iFreeRDP.app dist/device-unsigned/Payload/
+          (cd dist/device-unsigned && zip -qry iFreeRDP-unsigned.ipa Payload)
+          unzip -Z1 dist/device-unsigned/iFreeRDP-unsigned.ipa | grep '^Payload/iFreeRDP\\.app/en\\.lproj/Localizable\\.strings$'
+          test "$(unzip -Z1 dist/device-unsigned/iFreeRDP-unsigned.ipa | grep -c '^Payload/iFreeRDP\\.app/en\\.lproj/Localizable\\.strings$')" -eq 1
+          test "$(unzip -Z1 dist/device-unsigned/iFreeRDP-unsigned.ipa | grep -c 'en\\.lproj/en\\.lproj')" -eq 0
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: iFreeRDP-unsigned-ipa
+          path: dist/device-unsigned/iFreeRDP-unsigned.ipa
+          if-no-files-found: error
 
   device:
     name: Signed iOS device build
