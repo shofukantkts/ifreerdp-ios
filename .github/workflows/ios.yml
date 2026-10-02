@@ -32,6 +32,7 @@ concurrency:
 jobs:
   simulator:
     name: iOS Simulator
+    if: github.event_name != 'workflow_dispatch' || inputs.unsigned_device != true
     runs-on: macos-26
     timeout-minutes: 75
 
@@ -170,9 +171,11 @@ jobs:
           mkdir -p dist/device-unsigned/Payload
           cp -R dist/device-unsigned-install/iFreeRDP.app dist/device-unsigned/Payload/
           (cd dist/device-unsigned && zip -qry iFreeRDP-unsigned.ipa Payload)
-          unzip -Z1 dist/device-unsigned/iFreeRDP-unsigned.ipa | grep '^Payload/iFreeRDP\\.app/en\\.lproj/Localizable\\.strings$'
-          test "$(unzip -Z1 dist/device-unsigned/iFreeRDP-unsigned.ipa | grep -c '^Payload/iFreeRDP\\.app/en\\.lproj/Localizable\\.strings$')" -eq 1
-          test "$(unzip -Z1 dist/device-unsigned/iFreeRDP-unsigned.ipa | grep -c 'en\\.lproj/en\\.lproj')" -eq 0
+          locale_path='Payload/iFreeRDP.app/en.lproj/Localizable.strings'
+          locale_count="$(unzip -Z1 dist/device-unsigned/iFreeRDP-unsigned.ipa | grep -Fxc "$locale_path" || true)"
+          nested_locale_count="$(unzip -Z1 dist/device-unsigned/iFreeRDP-unsigned.ipa | grep -Fxc 'Payload/iFreeRDP.app/en.lproj/en.lproj/Localizable.strings' || true)"
+          test "$locale_count" -eq 1
+          test "$nested_locale_count" -eq 0
 
       - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
