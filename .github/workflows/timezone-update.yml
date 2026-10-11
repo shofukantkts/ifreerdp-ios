@@ -26,7 +26,11 @@ jobs:
     - name: Configure CMake
       run: cmake -G"Visual Studio 18 2026" -Bbuild -Swinpr\libwinpr\timezone\utils
     - name: Restore dependencies
-      run: dotnet restore build\tzextract.sln
+      run: |
+        if (-not (Test-Path build\tzextract.csproj)) {
+          throw "CMake did not generate build\tzextract.csproj"
+        }
+        dotnet restore build\tzextract.csproj
     - name: Build & Install CMake
       run: cmake --build build --config Release
     - name: Update timezones

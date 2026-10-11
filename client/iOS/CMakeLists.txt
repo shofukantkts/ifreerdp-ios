@@ -29,10 +29,8 @@ project(iFreeRDP VERSION ${FREERDP_DEFAULT_PROJECT_VERSION})
 
 message("project ${PROJECT_NAME} is using version ${PROJECT_VERSION}")
 
-set(IOS_BUNDLE_IDENTIFIER "com.example.ifreerdp" CACHE STRING
-    "Bundle identifier used for the iOS application")
-set(IOS_DISPLAY_NAME "iFreeRDP" CACHE STRING
-    "Display name used for the iOS application")
+set(IOS_BUNDLE_IDENTIFIER "com.example.ifreerdp" CACHE STRING "Bundle identifier used for the iOS application")
+set(IOS_DISPLAY_NAME "iFreeRDP" CACHE STRING "Display name used for the iOS application")
 
 get_filename_component(FREERDP_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
 
